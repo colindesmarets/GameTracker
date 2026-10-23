@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GameTracker">
+<meta name="theme-color" content="#111318">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>GameTracker</title>
+<style>
+:root {
+  --bg: #f4f5f8; --surface: #ffffff; --surface-2: #eceef3; --text: #15171c; --muted: #6b7180;
+  --accent: #5b5bf0; --accent-text: #ffffff; --danger: #d93838; --ok: #1f9d55; --border: #dde0e7;
+  --ps: #2f6fe0; --pc: #6b7280; --switch: #e0393e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115; --surface: #1a1d24; --surface-2: #252932; --text: #eef0f4; --muted: #9097a6;
+    --accent: #7c7cff; --border: #2c313b;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+body { padding: env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom)); }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 16px 8px;
+  display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-size: 28px; margin: 0; font-weight: 800; }
+main { padding: 0 16px 16px; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; width: 100%; }
+textarea { min-height: 80px; resize: vertical; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+.btn { background: var(--accent); color: var(--accent-text); border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+.btn.secondary { background: var(--surface-2); color: var(--text); }
+.btn.danger { background: transparent; color: var(--danger); }
+.btn.small { padding: 6px 10px; font-size: 14px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+.card { background: var(--surface); border-radius: 14px; padding: 12px; margin-bottom: 10px;
+  display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); }
+.card img, .cover-ph { width: 56px; height: 74px; object-fit: cover; border-radius: 8px; flex: none; background: var(--surface-2); }
+.cover-ph { display: grid; place-items: center; font-size: 24px; }
+.card .info { flex: 1; min-width: 0; }
+.card .title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { font-size: 13px; color: var(--muted); }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; padding: 2px 7px; border-radius: 6px; margin-right: 4px; }
+.badge.PS { background: var(--ps); } .badge.PC { background: var(--pc); } .badge.Switch { background: var(--switch); }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.filters { display: flex; gap: 6px; margin: 4px 0 12px; overflow-x: auto; }
+.chip { padding: 6px 12px; border-radius: 999px; background: var(--surface-2); font-size: 14px; white-space: nowrap; }
+.chip.active { background: var(--accent); color: var(--accent-text); }
+.empty { text-align: center; color: var(--muted); padding: 48px 16px; }
+h2 { font-size: 18px; margin: 20px 0 8px; }
+nav.tabs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; display: flex;
+  background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+nav.tabs button { flex: 1; padding: 8px 0 6px; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+nav.tabs button .ico { font-size: 22px; }
+nav.tabs button.active { color: var(--accent); }
+.fab { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 26px; line-height: 1; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; display: none; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--bg); border-radius: 18px 18px 0 0;
+  max-height: 92vh; overflow-y: auto; padding: 8px 16px calc(24px + env(safe-area-inset-bottom)); display: none; }
+.sheet.open, .sheet-bg.open { display: block; }
+.sheet .grab { width: 40px; height: 5px; background: var(--border); border-radius: 3px; margin: 4px auto 10px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.sheet-head h3 { margin: 0; font-size: 20px; }
+.list-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.list-item:last-child { border-bottom: 0; }
+.list-item .grow { flex: 1; min-width: 0; }
+.list-item input[type=checkbox] { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.done-text { text-decoration: line-through; color: var(--muted); }
+.note-text { white-space: pre-wrap; font-size: 15px; }
+.box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; }
+.hero { display: flex; gap: 12px; align-items: center; margin: 6px 0 4px; }
+.hero img, .hero .cover-ph { width: 80px; height: 106px; object-fit: cover; border-radius: 10px; }
+input[type=range] { padding: 0; background: none; border: 0; accent-color: var(--accent); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom));
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 30; font-size: 14px; display: none; }
+.date-pill { flex: none; text-align: center; background: var(--surface-2); border-radius: 10px; padding: 6px 8px; min-width: 56px; }
+.date-pill .d { font-size: 20px; font-weight: 800; line-height: 1; }
+.date-pill .m { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="page-title">En cours</h1>
+  <button class="fab" data-action="open-add" aria-label="Ajouter">+</button>
+</header>
+<main id="view"></main>
+
+<nav class="tabs">
+  <button data-tab="playing" class="active"><span class="ico">🎮</span>En cours</button>
+  <button data-tab="backlog"><span class="ico">📚</span>Backlog</button>
+  <button data-tab="releases"><span class="ico">📅</span>Sorties</button>
+  <button data-tab="done"><span class="ico">🏆</span>Terminés</button>
+  <button data-tab="settings"><span class="ico">⚙️</span>Réglages</button>
+</nav>
+
+<div class="sheet-bg" id="sheet-bg" data-action="close-sheet"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ---------- Constants ---------- */
+const STORAGE_KEY = 'gametracker.v1';
+const RAWG_BASE = 'https://api.rawg.io/api';
+const PLATFORMS = ['PS', 'PC', 'Switch'];
+// RAWG parent platform ids: 1 = PC, 2 = PlayStation, 7 = Nintendo
+const RAWG_PARENT_TO_PLATFORM = { 1: 'PC', 2: 'PS', 7: 'Switch' };
+const STATUS_LABELS = { playing: 'En cours', backlog: 'Backlog', done: 'Terminé', dropped: 'Abandonné' };
+const TAB_TITLES = { playing: 'En cours', backlog: 'Backlog', releases: 'Sorties', done: 'Terminés', settings: 'Réglages' };
+const MONTHS = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+
+/* ---------- State ---------- */
+let state = loadState();
+let currentTab = 'playing';
+let platformFilter = 'all';
+let openGameId = null;
+
+function loadState() {
+  const empty = { games: [], releases: [], settings: { rawgKey: '' } };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    return { ...empty, ...parsed, settings: { ...empty.settings, ...(parsed.settings || {}) } };
+  } catch (e) {
+    return empty;
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    toast('Erreur de sauvegarde : stockage plein ou indisponible');
+  }
+}
+
+/* ---------- Helpers ---------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const $ = (sel) => document.querySelector(sel);
+const todayIso = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatDate(iso) {
+  if (!iso) return 'Date inconnue';
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+
+function formatMinutes(total) {
+  const h = Math.floor(total / 60), m = total % 60;
+  return h ? `${h} h ${m ? m + ' min' : ''}`.trim() : `${m} min`;
+}
+
+function cover(url, size) {
+  return url
+    ? `<img src="${esc(url)}" alt="" loading="lazy"${size ? ` style="width:${size}px"` : ''}>`
+    : '<div class="cover-ph">🎮</div>';
+}
+
+function badge(platform) {
+  return platform ? `<span class="badge ${esc(platform)}">${esc(platform)}</span>` : '';
+}
+
+function toast(message) {
+  const el = $('#toast');
+  el.textContent = message;
+  el.style.display = 'block';
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { el.style.display = 'none'; }, 2200);
+}
+
+function totalPlaytime(game) {
+  return game.sessions.reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
+}
+
+function findGame(id) {
+  return state.games.find((g) => g.id === id);
+}
+
+/* ---------- RAWG API ---------- */
+async function rawgFetch(path, params = {}) {
+  const key = state.settings.rawgKey.trim();
+  if (!key) throw new Error('NO_KEY');
+  const query = new URLSearchParams({ key, ...params });
+  const response = await fetch(`${RAWG_BASE}${path}?${query}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function mapRawgGame(raw) {
+  const platforms = (raw.parent_platforms || [])
+    .map((p) => RAWG_PARENT_TO_PLATFORM[p.platform.id])
+    .filter(Boolean);
+  return {
+    rawgId: raw.id,
+    title: raw.name,
+    cover: raw.background_image || '',
+    released: raw.tba ? '' : (raw.released || ''),
+    platforms,
+  };
+}
+
+async function searchGames(term) {
+  const data = await rawgFetch('/games', { search: term, page_size: '15', parent_platforms: '1,2,7' });
+  return (data.results || []).map(mapRawgGame);
+}
+
+async function fetchAdditions(rawgId) {
+  const data = await rawgFetch(`/games/${rawgId}/additions`, { page_size: '30' });
+  return (data.results || []).map(mapRawgGame);
+}
+
+/* ---------- ICS export ---------- */
+function icsEscape(text) {
+  return String(text || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function buildIcs(releases) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GameTracker//FR', 'CALSCALE:GREGORIAN'];
+  releases.filter((r) => r.date).forEach((r) => {
+    const start = r.date.replace(/-/g, '');
+    const next = new Date(r.date + 'T00:00:00Z');
+    next.setUTCDate(next.getUTCDate() + 1);
+    const end = next.toISOString().slice(0, 10).replace(/-/g, '');
+    const kind = r.type === 'dlc' ? 'DLC' : 'Sortie';
+    const summary = `🎮 ${kind} : ${r.title}${r.platform ? ' (' + r.platform + ')' : ''}`;
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${r.id}@gametracker`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${start}`,
+      `DTEND;VALUE=DATE:${end}`,
+      `SUMMARY:${icsEscape(summary)}`,
+      `DESCRIPTION:${icsEscape(r.note || '')}`,
+      // Alarm the day before at 09:00 (all-day events start at 00:00 local time)
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT15H', `DESCRIPTION:${icsEscape('Demain : ' + r.title)}`, 'END:VALARM',
+      // Alarm on release day at 09:00
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:PT9H', `DESCRIPTION:${icsEscape('Aujourd\'hui : ' + r.title)}`, 'END:VALARM',
+      'END:VEVENT'
+    );
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+async function shareFile(content, filename, mime) {
+  const file = new File([content], filename, { type: mime });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function exportReleases(releases) {
+  const dated = releases.filter((r) => r.date);
+  if (!dated.length) { toast('Aucune sortie datée à exporter'); return; }
+  const name = dated.length === 1 ? `sortie-${dated[0].title.replace(/[^\w-]+/g, '_')}.ics` : 'sorties-jeux.ics';
+  shareFile(buildIcs(dated), name, 'text/calendar');
+}
+
+/* ---------- Rendering: lists ---------- */
+function render() {
+  $('#page-title').textContent = TAB_TITLES[currentTab];
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === currentTab));
+  const view = $('#view');
+  if (currentTab === 'releases') view.innerHTML = renderReleases();
+  else if (currentTab === 'settings') view.innerHTML = renderSettings();
+  else view.innerHTML = renderGameList(currentTab);
+}
+
+function renderFilters() {
+  const options = [['all', 'Toutes'], ...PLATFORMS.map((p) => [p, p])];
+  return `<div class="filters">${options.map(([value, label]) =>
+    `<button class="chip ${platformFilter === value ? 'active' : ''}" data-action="filter" data-value="${value}">${label}</button>`
+  ).join('')}</div>`;
+}
+
+function renderGameList(tab) {
+  const statuses = tab === 'done' ? ['done', 'dropped'] : [tab];
+  let games = state.games.filter((g) => statuses.includes(g.status));
+  if (platformFilter !== 'all') games = games.filter((g) => g.platform === platformFilter);
+  if (tab === 'backlog') games.sort((a, b) => (a.priority || 99) - (b.priority || 99) || a.addedAt - b.addedAt);
+  else games.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  const emptyText = {
+    playing: 'Aucun jeu en cours.<br>Touche + pour en ajouter un.',
+    backlog: 'Ton backlog est vide.<br>Ajoute les jeux que tu veux faire ensuite.',
+    done: 'Aucun jeu terminé pour l\'instant.',
+  }[tab];
+
+  const cards = games.map((g) => {
+    const openObjectives = g.objectives.filter((o) => !o.done);
+    let meta = '';
+    if (tab === 'playing') {
+      meta = `<div class="meta">${openObjectives.length ? '🎯 ' + esc(openObjectives[0].text) : 'Aucun objectif en cours'}</div>
+        <div class="bar"><span style="width:${g.progress || 0}%"></span></div>`;
+    } else if (tab === 'backlog') {
+      meta = `<div class="meta">Priorité ${g.priority || '–'}${g.released ? ' · sorti le ' + formatDate(g.released) : ''}</div>`;
+    } else {
+      meta = `<div class="meta">${STATUS_LABELS[g.status]} · ${formatMinutes(totalPlaytime(g))} joués</div>`;
+    }
+    return `<div class="card" data-action="open-game" data-id="${g.id}">
+      ${cover(g.cover)}
+      <div class="info">
+        <div class="title">${esc(g.title)}</div>
+        <div class="meta">${badge(g.platform)}${tab === 'playing' ? (g.progress || 0) + ' % · ' + formatMinutes(totalPlaytime(g)) : ''}</div>
+        ${meta}
+      </div>
+    </div>`;
+  }).join('');
+
+  return renderFilters() + (cards || `<div class="empty">${emptyText}</div>`);
+}
+
+function renderReleases() {
+  const today = todayIso();
+  const sorted = [...state.releases].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+  const upcoming = sorted.filter((r) => r.date && r.date >= today);
+  const undated = sorted.filter((r) => !r.date);
+  const past = sorted.filter((r) => r.date && r.date < today).reverse();
+
+  const item = (r) => {
+    const [y, m, d] = (r.date || '').split('-').map(Number);
+    const pill = r.date
+      ? `<div class="date-pill"><div class="d">${d}</div><div class="m">${MONTHS[m - 1]} ${String(y).slice(2)}</div></div>`
+      : '<div class="date-pill"><div class="d">?</div><div class="m">TBA</div></div>';
+    return `<div class="card" data-action="edit-release" data-id="${r.id}">
+      ${pill}
+      <div class="info">
+        <div class="title">${esc(r.title)}</div>
+        <div class="meta">${badge(r.platform)}${r.type === 'dlc' ? 'DLC' : 'Jeu'}${r.note ? ' · ' + esc(r.note) : ''}</div>
+      </div>
+      ${r.date ? `<button class="btn secondary small" data-action="ics-one" data-id="${r.id}">📅</button>` : ''}
+    </div>`;
+  };
+
+  if (!state.releases.length) {
+    return '<div class="empty">Aucun rappel de sortie.<br>Touche + et choisis « Rappel de sortie », ou ajoute un DLC depuis la fiche d\'un jeu.</div>';
+  }
+  return `
+    ${upcoming.length ? `<button class="btn" style="width:100%;margin-bottom:12px" data-action="ics-all">📅 Tout ajouter au calendrier (${upcoming.length})</button>` : ''}
+    ${upcoming.length ? '<h2>À venir</h2>' + upcoming.map(item).join('') : ''}
+    ${undated.length ? '<h2>Date à confirmer</h2>' + undated.map(item).join('') : ''}
+    ${past.length ? '<h2>Déjà sortis</h2>' + past.map(item).join('') : ''}`;
+}
+
+function renderSettings() {
+  const counts = Object.keys(STATUS_LABELS).map((s) => `${STATUS_LABELS[s]} : ${state.games.filter((g) => g.status === s).length}`).join(' · ');
+  const minutes = state.games.reduce((sum, g) => sum + totalPlaytime(g), 0);
+  return `
+    <h2>Base de jeux RAWG</h2>
+    <div class="box" style="padding:12px">
+      <label for="rawg-key" style="margin-top:0">Clé API (gratuite sur rawg.io/apidocs)</label>
+      <input id="rawg-key" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.settings.rawgKey)}" placeholder="Colle ta clé ici">
+      <button class="btn" style="margin-top:10px" data-action="save-key">Enregistrer la clé</button>
+      <p class="meta">Données de jeux fournies par <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>.</p>
+    </div>
+    <h2>Sauvegarde</h2>
+    <div class="box" style="padding:12px">
+      <p class="meta" style="margin-top:0">Tes données sont stockées uniquement sur cet iPhone. Exporte-les régulièrement (dans Fichiers ou iCloud Drive) pour ne rien perdre.</p>
+      <div class="row">
+        <button class="btn" data-action="export-json">Exporter</button>
+        <button class="btn secondary" data-action="import-json">Importer</button>
+      </div>
+      <input id="import-file" type="file" accept="application/json,.json" style="display:none">
+    </div>
+    <h2>Statistiques</h2>
+    <div class="box" style="padding:12px">
+      <div class="meta">${counts}</div>
+      <div class="meta">Temps de jeu total enregistré : ${formatMinutes(minutes)}</div>
+      <div class="meta">Rappels de sortie : ${state.releases.length}</div>
+    </div>`;
+}
+
+/* ---------- Sheets ---------- */
+function openSheet(html) {
+  $('#sheet').innerHTML = '<div class="grab"></div>' + html;
+  $('#sheet').classList.add('open');
+  $('#sheet-bg').classList.add('open');
+  $('#sheet').scrollTop = 0;
+}
+
+function closeSheet() {
+  $('#sheet').classList.remove('open');
+  $('#sheet-bg').classList.remove('open');
+  openGameId = null;
+  render();
+}
+
+function platformSelect(id, selected, allowEmpty) {
+  return `<select id="${id}">${allowEmpty ? '<option value="">—</option>' : ''}${PLATFORMS.map((p) =>
+    `<option value="${p}" ${p === selected ? 'selected' : ''}>${p === 'PS' ? 'PlayStation' : p}</option>`).join('')}</select>`;
+}
+
+/* Add flow: search RAWG or manual entry */
+let searchResults = [];
+let pendingAdd = null;
+
+function openAddSheet() {
+  const hasKey = !!state.settings.rawgKey.trim();
+  openSheet(`
+    <div class="sheet-head"><h3>Ajouter</h3><button class="btn secondary small" data-action="close-sheet">Fermer</button></div>
+    ${hasKey ? `
+      <form id="search-form" class="row" style="margin-top:8px">
+        <input id="search-input" type="search" placeholder="Rechercher un jeu…" autocomplete="off">
+        <button class="btn" style="flex:none" type="submit">🔍</button>
+      </form>
+      <div id="search-results" style="margin-top:12px"></div>`
+    : '<p class="meta">Ajoute ta clé RAWG dans Réglages pour activer la recherche automatique.</p>'}
+    <button class="btn secondary" style="width:100%;margin-top:12px" data-action="manual-add">Saisie manuelle</button>`);
+  if (hasKey) setTimeout(() => $('#search-input')?.focus(), 50);
+}
+
+async function runSearch(term) {
+  const box = $('#search-results');
+  if (!term.trim()) return;
+  box.innerHTML = '<p class="meta">Recherche…</p>';
+  try {
+    searchResults = await searchGames(term.trim());
+    box.innerHTML = searchResults.length
+      ? searchResults.map((r, i) => `<div class="card" data-action="pick-result" data-index="${i}">
+          ${cover(r.cover)}
+          <div class="info">
+            <div class="title">${esc(r.title)}</div>
+            <div class="meta">${r.platforms.map(badge).join('')}</div>
+            <div class="meta">${r.released ? formatDate(r.released) : 'Date à confirmer'}</div>
+          </div></div>`).join('')
+      : '<p class="meta">Aucun résultat sur PS, PC ou Switch.</p>';
+  } catch (e) {
+    box.innerHTML = `<p class="meta">${e.message === 'NO_KEY' ? 'Clé RAWG manquante.' : 'Recherche impossible (' + esc(e.message) + '). Vérifie ta connexion et ta clé.'}</p>`;
+  }
+}
+
+function openDestinationSheet(entry, defaultType) {
+  pendingAdd = entry;
+  const isFuture = entry.released && entry.released > todayIso();
+  const defaultDest = defaultType || (!entry.released || isFuture ? 'release' : 'playing');
+  openSheet(`
+    <div class="sheet-head"><h3>${entry.rawgId ? esc(entry.title) : 'Nouveau jeu'}</h3><button class="btn secondary small" data-action="close-sheet">Annuler</button></div>
+    ${entry.rawgId ? `<div class="hero">${cover(entry.cover)}<div class="meta">${entry.platforms.map(badge).join('')}<br>${entry.released ? formatDate(entry.released) : 'Date à confirmer'}</div></div>`
+      : '<label for="add-title">Titre</label><input id="add-title" type="text" placeholder="Nom du jeu">'}
+    <label for="add-dest">Ajouter à</label>
+    <select id="add-dest">
+      <option value="playing" ${defaultDest === 'playing' ? 'selected' : ''}>🎮 En cours</option>
+      <option value="backlog" ${defaultDest === 'backlog' ? 'selected' : ''}>📚 Backlog</option>
+      <option value="release" ${defaultDest === 'release' ? 'selected' : ''}>📅 Rappel de sortie</option>
+    </select>
+    <label for="add-platform">Plateforme</label>
+    ${platformSelect('add-platform', entry.platforms?.[0] || 'PS')}
+    <div id="release-fields">
+      <label for="add-date">Date de sortie</label>
+      <input id="add-date" type="date" value="${esc(entry.released || '')}">
+      <label for="add-type">Type</label>
+      <select id="add-type"><option value="game" ${entry.type !== 'dlc' ? 'selected' : ''}>Jeu</option><option value="dlc" ${entry.type === 'dlc' ? 'selected' : ''}>DLC</option></select>
+    </div>
+    <button class="btn" style="width:100%;margin-top:16px" data-action="confirm-add">Ajouter</button>`);
+}
+
+function confirmAdd() {
+  const entry = pendingAdd || {};
+  const title = entry.rawgId ? entry.title : ($('#add-title')?.value || '').trim();
+  if (!title) { toast('Indique un titre'); return; }
+  const dest = $('#add-dest').value;
+  const platform = $('#add-platform').value;
+  if (dest === 'release') {
+    state.releases.push({
+      id: uid(), rawgId: entry.rawgId || null, title, cover: entry.cover || '',
+      platform, date: $('#add-date').value || '', type: $('#add-type').value, note: entry.note || '',
+    });
+    currentTab = 'releases';
+  } else {
+    const backlogPriorities = state.games.filter((g) => g.status === 'backlog').map((g) => g.priority || 0);
+    state.games.push({
+      id: uid(), rawgId: entry.rawgId || null, title, cover: entry.cover || '', platform,
+      released: entry.released || '', status: dest, progress: 0,
+      priority: dest === 'backlog' ? Math.max(0, ...backlogPriorities) + 1 : null,
+      objectives: [], sessions: [], addedAt: Date.now(), updatedAt: Date.now(),
+    });
+    currentTab = dest;
+  }
+  saveState();
+  pendingAdd = null;
+  closeSheet();
+  toast('Ajouté ✓');
+}
+
+/* Game detail */
+function openGameSheet(id) {
+  const g = findGame(id);
+  if (!g) return;
+  openGameId = id;
+  const sessions = [...g.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  openSheet(`
+    <div class="sheet-head"><h3 style="flex:1;margin-right:8px">${esc(g.title)}</h3><button class="btn secondary small" data-action="close-sheet">OK</button></div>
+    <div class="hero">${cover(g.cover)}
+      <div class="meta">${badge(g.platform)}<br>${formatMinutes(totalPlaytime(g))} joués · ${g.sessions.length} session(s)
+        ${g.released ? '<br>Sorti le ' + formatDate(g.released) : ''}</div></div>
+
+    <div class="row">
+      <div><label for="g-status">Statut</label><select id="g-status" data-field="status">
+        ${Object.entries(STATUS_LABELS).map(([k, v]) => `<option value="${k}" ${g.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+      </select></div>
+      <div><label for="g-platform">Plateforme</label>${platformSelect('g-platform', g.platform)}</div>
+    </div>
+    ${g.status === 'backlog' ? `<label for="g-priority">Priorité (1 = prochain)</label><input id="g-priority" type="number" min="1" value="${g.priority || ''}">` : ''}
+
+    <label for="g-progress">Progression : <strong id="progress-val">${g.progress || 0} %</strong></label>
+    <input id="g-progress" type="range" min="0" max="100" step="5" value="${g.progress || 0}">
+
+    <h2>🎯 Objectifs</h2>
+    <div class="box">
+      ${g.objectives.map((o) => `<div class="list-item">
+        <input type="checkbox" data-action="toggle-objective" data-id="${o.id}" ${o.done ? 'checked' : ''}>
+        <div class="grow ${o.done ? 'done-text' : ''}">${esc(o.text)}</div>
+        <button class="btn danger small" data-action="delete-objective" data-id="${o.id}">✕</button></div>`).join('')}
+      <form id="objective-form" class="row list-item">
+        <input id="objective-input" type="text" placeholder="Nouvel objectif…">
+        <button class="btn small" style="flex:none" type="submit">Ajouter</button>
+      </form>
+    </div>
+
+    <h2>📝 Sessions & notes</h2>
+    <div class="box" style="padding:12px">
+      <div class="row">
+        <div><label for="s-date" style="margin-top:0">Date</label><input id="s-date" type="date" value="${todayIso()}"></div>
+        <div><label for="s-duration" style="margin-top:0">Durée (min)</label><input id="s-duration" type="number" min="0" inputmode="numeric" placeholder="60"></div>
+      </div>
+      <label for="s-note">Notes</label>
+      <textarea id="s-note" placeholder="Où j'en suis, ce qu'il reste à faire, astuces…"></textarea>
+      <button class="btn" style="width:100%;margin-top:10px" data-action="add-session">Enregistrer la session</button>
+    </div>
+    ${sessions.length ? `<div class="box" style="margin-top:10px">${sessions.map((s) => `<div class="list-item">
+      <div class="grow"><div class="meta">${formatDate(s.date)}${s.duration ? ' · ' + formatMinutes(Number(s.duration)) : ''}</div>
+        ${s.note ? `<div class="note-text">${esc(s.note)}</div>` : ''}</div>
+      <button class="btn danger small" data-action="delete-session" data-id="${s.id}">✕</button></div>`).join('')}</div>` : ''}
+
+    ${g.rawgId ? `<h2>🧩 DLC & extensions</h2><div id="dlc-box"><button class="btn secondary" style="width:100%" data-action="load-dlc">Rechercher les DLC</button></div>` : ''}
+
+    <button class="btn danger" style="width:100%;margin-top:24px" data-action="delete-game">Supprimer ce jeu</button>`);
+}
+
+function updateGame(id, changes) {
+  const g = findGame(id);
+  if (!g) return;
+  Object.assign(g, changes, { updatedAt: Date.now() });
+  saveState();
+}
+
+async function loadDlc(game) {
+  const box = $('#dlc-box');
+  box.innerHTML = '<p class="meta">Chargement…</p>';
+  try {
+    const additions = await fetchAdditions(game.rawgId);
+    searchResults = additions;
+    box.innerHTML = additions.length
+      ? '<div class="box">' + additions.map((a, i) => `<div class="list-item">
+          <div class="grow"><div>${esc(a.title)}</div><div class="meta">${a.released ? formatDate(a.released) : 'Date à confirmer'}</div></div>
+          <button class="btn small" data-action="dlc-reminder" data-index="${i}">📅 Rappel</button></div>`).join('') + '</div>'
+      : '<p class="meta">Aucun DLC référencé sur RAWG pour ce jeu.</p>';
+  } catch (e) {
+    box.innerHTML = `<p class="meta">Chargement impossible (${esc(e.message)}).</p>`;
+  }
+}
+
+/* Release edit */
+function openReleaseSheet(id) {
+  const r = state.releases.find((x) => x.id === id);
+  if (!r) return;
+  openSheet(`
+    <div class="sheet-head"><h3>Rappel de sortie</h3><button class="btn secondary small" data-action="close-sheet">Fermer</button></div>
+    <label for="r-title">Titre</label><input id="r-title" type="text" value="${esc(r.title)}">
+    <div class="row">
+      <div><label for="r-platform">Plateforme</label>${platformSelect('r-platform', r.platform, true)}</div>
+      <div><label for="r-type">Type</label><select id="r-type"><option value="game" ${r.type !== 'dlc' ? 'selected' : ''}>Jeu</option><option value="dlc" ${r.type === 'dlc' ? 'selected' : ''}>DLC</option></select></div>
+    </div>
+    <label for="r-date">Date de sortie</label><input id="r-date" type="date" value="${esc(r.date)}">
+    <label for="r-note">Note</label><input id="r-note" type="text" value="${esc(r.note)}" placeholder="Édition, précommande…">
+    <button class="btn" style="width:100%;margin-top:16px" data-action="save-release" data-id="${r.id}">Enregistrer</button>
+    <div class="row" style="margin-top:10px">
+      <button class="btn secondary" data-action="release-to-backlog" data-id="${r.id}">→ Backlog</button>
+      <button class="btn secondary" data-action="ics-one" data-id="${r.id}">📅 Calendrier</button>
+    </div>
+    <button class="btn danger" style="width:100%;margin-top:16px" data-action="delete-release" data-id="${r.id}">Supprimer le rappel</button>`);
+}
+
+/* ---------- Backup ---------- */
+function exportJson() {
+  const stamp = todayIso();
+  shareFile(JSON.stringify({ app: 'gametracker', version: 1, exportedAt: new Date().toISOString(), data: state }, null, 2),
+    `gametracker-${stamp}.json`, 'application/json');
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const data = parsed.data || parsed;
+      if (!Array.isArray(data.games) || !Array.isArray(data.releases)) throw new Error('format');
+      if (!confirm('Remplacer toutes les données actuelles par celles du fichier ?')) return;
+      state = { games: data.games, releases: data.releases, settings: { ...state.settings, ...(data.settings || {}) } };
+      saveState();
+      render();
+      toast('Import terminé ✓');
+    } catch (e) {
+      toast('Fichier invalide');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', (event) => {
+  const tabButton = event.target.closest('[data-tab]');
+  if (tabButton) { currentTab = tabButton.dataset.tab; render(); window.scrollTo(0, 0); return; }
+
+  const el = event.target.closest('[data-action]');
+  if (!el) return;
+  const { action, id, index, value } = el.dataset;
+  const game = openGameId ? findGame(openGameId) : null;
+
+  switch (action) {
+    case 'close-sheet': closeSheet(); break;
+    case 'open-add': openAddSheet(); break;
+    case 'manual-add': openDestinationSheet({ platforms: [] }); break;
+    case 'pick-result': openDestinationSheet(searchResults[Number(index)]); break;
+    case 'confirm-add': confirmAdd(); break;
+    case 'filter': platformFilter = value; render(); break;
+    case 'open-game': openGameSheet(id); break;
+
+    case 'toggle-objective': {
+      const o = game.objectives.find((x) => x.id === id);
+      o.done = el.checked;
+      updateGame(game.id, {});
+      openGameSheet(game.id);
+      break;
+    }
+    case 'delete-objective':
+      updateGame(game.id, { objectives: game.objectives.filter((o) => o.id !== id) });
+      openGameSheet(game.id);
+      break;
+    case 'add-session': {
+      const note = $('#s-note').value.trim();
+      const duration = Number($('#s-duration').value) || 0;
+      if (!note && !duration) { toast('Ajoute une durée ou une note'); return; }
+      game.sessions.push({ id: uid(), date: $('#s-date').value || todayIso(), duration, note, createdAt: Date.now() });
+      updateGame(game.id, {});
+      openGameSheet(game.id);
+      toast('Session enregistrée ✓');
+      break;
+    }
+    case 'delete-session':
+      if (!confirm('Supprimer cette session ?')) return;
+      updateGame(game.id, { sessions: game.sessions.filter((s) => s.id !== id) });
+      openGameSheet(game.id);
+      break;
+    case 'delete-game':
+      if (!confirm(`Supprimer « ${game.title} » et toutes ses notes ?`)) return;
+      state.games = state.games.filter((g) => g.id !== game.id);
+      saveState();
+      closeSheet();
+      break;
+    case 'load-dlc': loadDlc(game); break;
+    case 'dlc-reminder': {
+      const dlc = searchResults[Number(index)];
+      openDestinationSheet({ ...dlc, platforms: [game.platform], type: 'dlc', note: `DLC de ${game.title}` }, 'release');
+      break;
+    }
+
+    case 'edit-release':
+      if (event.target.closest('[data-action="ics-one"]')) return;
+      openReleaseSheet(id);
+      break;
+    case 'save-release': {
+      const r = state.releases.find((x) => x.id === id);
+      const title = $('#r-title').value.trim();
+      if (!title) { toast('Indique un titre'); return; }
+      Object.assign(r, { title, platform: $('#r-platform').value, type: $('#r-type').value, date: $('#r-date').value, note: $('#r-note').value.trim() });
+      saveState();
+      closeSheet();
+      toast('Enregistré ✓');
+      break;
+    }
+    case 'release-to-backlog': {
+      const r = state.releases.find((x) => x.id === id);
+      const backlogPriorities = state.games.filter((g) => g.status === 'backlog').map((g) => g.priority || 0);
+      state.games.push({
+        id: uid(), rawgId: r.rawgId, title: r.title, cover: r.cover || '', platform: r.platform || 'PS',
+        released: r.date, status: 'backlog', progress: 0, priority: Math.max(0, ...backlogPriorities) + 1,
+        objectives: [], sessions: [], addedAt: Date.now(), updatedAt: Date.now(),
+      });
+      state.releases = state.releases.filter((x) => x.id !== id);
+      saveState();
+      currentTab = 'backlog';
+      closeSheet();
+      toast('Déplacé dans le backlog ✓');
+      break;
+    }
+    case 'delete-release':
+      if (!confirm('Supprimer ce rappel ?')) return;
+      state.releases = state.releases.filter((x) => x.id !== id);
+      saveState();
+      closeSheet();
+      break;
+    case 'ics-one': exportReleases(state.releases.filter((x) => x.id === id)); break;
+    case 'ics-all': exportReleases(state.releases.filter((r) => r.date && r.date >= todayIso())); break;
+
+    case 'save-key':
+      state.settings.rawgKey = $('#rawg-key').value.trim();
+      saveState();
+      toast('Clé enregistrée ✓');
+      break;
+    case 'export-json': exportJson(); break;
+    case 'import-json': $('#import-file').click(); break;
+  }
+});
+
+document.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (event.target.id === 'search-form') runSearch($('#search-input').value);
+  if (event.target.id === 'objective-form') {
+    const input = $('#objective-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const game = findGame(openGameId);
+    game.objectives.push({ id: uid(), text, done: false });
+    updateGame(game.id, {});
+    openGameSheet(game.id);
+    setTimeout(() => $('#objective-input')?.focus(), 50);
+  }
+});
+
+document.addEventListener('change', (event) => {
+  const target = event.target;
+  if (target.id === 'import-file' && target.files[0]) { importJson(target.files[0]); target.value = ''; return; }
+  if (!openGameId) return;
+  if (target.id === 'g-status') {
+    const changes = { status: target.value };
+    if (target.value === 'done') changes.progress = 100;
+    if (target.value === 'backlog' && !findGame(openGameId).priority) {
+      changes.priority = Math.max(0, ...state.games.filter((g) => g.status === 'backlog').map((g) => g.priority || 0)) + 1;
+    }
+    updateGame(openGameId, changes);
+    openGameSheet(openGameId);
+  }
+  if (target.id === 'g-platform') updateGame(openGameId, { platform: target.value });
+  if (target.id === 'g-priority') updateGame(openGameId, { priority: Number(target.value) || null });
+  if (target.id === 'g-progress') updateGame(openGameId, { progress: Number(target.value) });
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'g-progress') $('#progress-val').textContent = event.target.value + ' %';
+});
+
+/* ---------- Boot ---------- */
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+render();
+</script>
+</body>
+</html>
